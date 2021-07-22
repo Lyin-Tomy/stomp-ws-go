@@ -88,6 +88,39 @@ func (c *Connection) Subscribe(h Headers) (<-chan MessageData, error) {
 	return sub.md, e
 }
 
+func (c *Connection) SubscribeByte(h Headers, b []byte) (<-chan MessageData, error) {
+	c.log(SUBSCRIBE, "start", h, c.Protocol())
+	if !c.isConnected() {
+		return nil, ECONBAD
+	}
+	e := checkHeaders(h, c.Protocol())
+	if e != nil {
+		return nil, e
+	}
+	e = c.checkSubscribeHeaders(h)
+	if e != nil {
+		return nil, e
+	}
+	ch := h.Clone()
+	if _, ok := ch.Contains(HK_ACK); !ok {
+		ch = append(ch, HK_ACK, AckModeAuto)
+	}
+	sub, e, ch := c.establishSubscription(ch)
+	if e != nil {
+		return nil, e
+	}
+	//
+	f := Frame{SUBSCRIBE, ch, b}
+	//
+	r := make(chan error)
+	if e = c.writeWireData(wiredata{f, r}); e != nil {
+		return nil, e
+	}
+	e = <-r
+	c.log(SUBSCRIBE, "end", ch, c.Protocol())
+	return sub.md, e
+}
+
 /*
 	Check SUBSCRIBE specific requirements.
 */

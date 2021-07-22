@@ -120,6 +120,7 @@ type Stomper interface {
 	Unsubscribe(headers Headers) error
 	//
 	SendBytes(h Headers, b []byte) error
+	SubscribeByte(headers Headers, b []byte) (<-chan MessageData, error)
 }
 
 /*
